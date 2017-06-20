@@ -36,6 +36,12 @@ public class NotificationBannerQueue: NSObject {
         return banners.count
     }
     
+    public var isExclusive: Bool = false
+    
+    public var isSilenced: Bool = false {
+        didSet { dismissAllBanners() }
+    }
+    
     /**
         Adds a banner to the queue
         -parameter banner: The notification banner to add to the queue
@@ -43,6 +49,12 @@ public class NotificationBannerQueue: NSObject {
         banner will be displayed immediately
     */
     func addBanner(_ banner: BaseNotificationBanner, queuePosition: QueuePosition) {
+        guard !isSilenced else { return }
+        
+        if isExclusive {
+            dismissAllBanners()
+            banner.show(placeOnQueue: false)
+        }
         
         if queuePosition == .back {
             banners.append(banner)
@@ -68,6 +80,7 @@ public class NotificationBannerQueue: NSObject {
         -parameter callback: The closure to execute after a banner is shown or when the queue is empty
     */
     func showNext(callback: ((_ isEmpty: Bool) -> Void)) {
+        guard !isSilenced else { return }
 
         if !banners.isEmpty {
           banners.removeFirst()
@@ -84,5 +97,10 @@ public class NotificationBannerQueue: NSObject {
         }
         
         callback(false)
+    }
+    
+    private func dismissAllBanners() {
+        banners.filter({ $0.window != nil }).forEach({ $0.dismiss() })
+        banners.removeAll()
     }
 }
